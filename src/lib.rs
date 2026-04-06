@@ -10,11 +10,15 @@ pub struct TokenBucket {
 
 impl TokenBucket {
     pub fn new(capacity: u64, refill_rate: u64) -> Self {
+        Self::new_at(capacity, refill_rate, Instant::now())
+    }
+
+    pub fn new_at(capacity: u64, refill_rate: u64, now: Instant) -> Self {
         Self {
             capacity,
             refill_rate,
             tokens: capacity,
-            last_refill: Instant::now(),
+            last_refill: now,
         }
     }
 
@@ -22,7 +26,7 @@ impl TokenBucket {
         self.try_consume_at(tokens, Instant::now())
     }
 
-    fn try_consume_at(&mut self, tokens: u64, now: Instant) -> bool {
+    pub fn try_consume_at(&mut self, tokens: u64, now: Instant) -> bool {
         if tokens == 0 {
             return false;
         }
