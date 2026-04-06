@@ -11,14 +11,14 @@ fn benchmark_rate_limit(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("consume_success_only", |b| {
+    c.bench_function("consume_success_public", |b| {
         b.iter_batched_ref(
             || TokenBucket::new(100, 2),
             |bucket| bucket.try_consume(black_box(10)),
             BatchSize::SmallInput,
         )
     });
-    c.bench_function("consume_at_success_only", |b| {
+    c.bench_function("consume_success_at", |b| {
         b.iter_batched_ref(
             || (TokenBucket::new(100, 2), Instant::now()),
             |(bucket, now)| bucket.try_consume_at(black_box(10), black_box(*now)),
@@ -26,7 +26,7 @@ fn benchmark_rate_limit(c: &mut Criterion) {
         )
     });
 
-    c.bench_function("consume_failed_only", |b| {
+    c.bench_function("consume_failed_public", |b| {
         b.iter_batched_ref(
             || TokenBucket::new(8, 2),
             |bucket| bucket.try_consume(black_box(10)),
@@ -34,7 +34,7 @@ fn benchmark_rate_limit(c: &mut Criterion) {
         )
     });
 
-    c.bench_function("consume_at_failed_only", |b| {
+    c.bench_function("consume_failed_at", |b| {
         b.iter_batched_ref(
             || (TokenBucket::new(8, 2), Instant::now()),
             |(bucket, now)| bucket.try_consume_at(black_box(10), black_box(*now)),

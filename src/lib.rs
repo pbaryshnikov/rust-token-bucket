@@ -3,20 +3,20 @@ use std::time::Instant;
 
 pub struct TokenBucket {
     capacity: u64,
-    refill_rate: u64,
+    tokens_per_second: u64,
     tokens: u64,
     last_refill: Instant,
 }
 
 impl TokenBucket {
-    pub fn new(capacity: u64, refill_rate: u64) -> Self {
-        Self::new_at(capacity, refill_rate, Instant::now())
+    pub fn new(capacity: u64, tokens_per_second: u64) -> Self {
+        Self::new_at(capacity, tokens_per_second, Instant::now())
     }
 
-    pub fn new_at(capacity: u64, refill_rate: u64, now: Instant) -> Self {
+    pub fn new_at(capacity: u64, tokens_per_second: u64, now: Instant) -> Self {
         Self {
             capacity,
-            refill_rate,
+            tokens_per_second,
             tokens: capacity,
             last_refill: now,
         }
@@ -30,20 +30,24 @@ impl TokenBucket {
         if tokens == 0 {
             return false;
         }
-        let time_from_last_refill = (now - self.last_refill).as_secs();
-        if time_from_last_refill > 0 {
-            self.tokens = cmp::min(
-                self.capacity,
-                self.tokens + self.refill_rate * time_from_last_refill,
-            );
-            self.last_refill = now;
-        }
+        self.refill_at(now);
 
         if self.tokens >= tokens {
             self.tokens -= tokens;
             true
         } else {
             false
+        }
+    }
+
+    fn refill_at(&mut self, now: Instant) {
+        let elapsed_secs = (now - self.last_refill).as_secs();
+        if elapsed_secs > 0 {
+            self.tokens = cmp::min(
+                self.capacity,
+                self.tokens + self.tokens_per_second * elapsed_secs,
+            );
+            self.last_refill = now;
         }
     }
 }
@@ -63,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn refills_after_time_passed() {
+    fn refills_after_one_second() {
         let mut bucket = TokenBucket::new(3, 1);
         let start = bucket.last_refill;
         assert!(bucket.try_consume_at(3, start));
@@ -74,7 +78,7 @@ mod tests {
     }
 
     #[test]
-    fn refills_only_after_time_passed() {
+    fn does_not_refill_before_full_second() {
         let mut bucket = TokenBucket::new(3, 1);
         let start = bucket.last_refill;
         assert!(bucket.try_consume_at(3, start));
@@ -127,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn refill_boundaries_valid() {
+    fn consumes_exact_refilled_amount() {
         let mut bucket = TokenBucket::new(5, 2);
         let start = bucket.last_refill;
         assert!(bucket.try_consume_at(5, start));
